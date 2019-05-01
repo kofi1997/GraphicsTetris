@@ -47,6 +47,19 @@ using namespace std;
 //GLOBALS
 int sizex = 500;
 int sizey = 500;
+
+static float a = 1; // Red ambient reflectance.
+static float d = 1.0; // Red diffuse reflectance.
+static float s = 0.7; // White specular reflectance.(1.0 or 0.0) 
+static float h = 128; // Shininess.
+
+static float t = 0.0; // Quadratic attenuation factor.(0 or 1)
+static bool over = false;
+
+float lightAmb[] = { 1.0, 1.0, 1.0, 1 };
+float lightDifAndSpec0[] = { 1, 1.0, 1.0, 1.0 };
+
+
 board* gameBoard;
 
 
@@ -69,12 +82,37 @@ void printInteraction()
 void setup()
 {
 	glClearColor(1.0, 1.0, 1.0, 0.0);
+
+
 	glEnable(GL_DEPTH_TEST);
 	glLineWidth(5);
 	gameBoard = new board();
+
+	glEnable(GL_DEPTH_TEST); // Enable depth testing.
+
+
+							 // Turn on OpenGL lighting.
+	glEnable(GL_LIGHTING);
+
+
+	// Light0 properties.
+	glLightfv(GL_LIGHT0, GL_AMBIENT, lightAmb);
+	glLightfv(GL_LIGHT0, GL_DIFFUSE, lightDifAndSpec0);
+	glLightfv(GL_LIGHT0, GL_SPECULAR, lightDifAndSpec0);
+
+
+	glEnable(GL_LIGHT0); // Enable particular light source.
+	glLightModeli(GL_LIGHT_MODEL_LOCAL_VIEWER, GL_TRUE); // Enable local viewpoint
 }
 
 void setProjection();  //function prototype before function called
+
+					   // Routine to draw a stroke character string.
+void writeStrokeString(void *font, const char *string)
+{
+	const char *c;
+	for (c = string; *c != '\0'; c++) glutStrokeCharacter(font, *c);
+}
 
 void resize(int w, int h)
 {
@@ -96,7 +134,7 @@ void setProjection()
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	//glOrtho(0, 30, 0, 30, 1.9, 5);
-	glFrustum(0, 30, 0, 30, 1.9, 5);
+	glFrustum(0, 100, 0, 100, 1.9, 20);
 	glMatrixMode(GL_MODELVIEW);
 }
 
@@ -104,29 +142,29 @@ void drawFrame() {
 	glLineWidth(5);
 	//outline
 	glBegin(GL_LINES);
-	glVertex3f(0, 0, -2.4);
-	glVertex3f(10, 0, -2.4);
-	glVertex3f(10, 0, -2.4);
-	glVertex3f(10, 20, -2.4);
-	glVertex3f(10, 20, -2.4);
-	glVertex3f(0, 20, -2.4);
-	glVertex3f(10, 0, -2.4);
-	glVertex3f(0, 0, -2.4);
+	glVertex3f(20, 0, -2);
+	glVertex3f(60, 0, -2);
+	glVertex3f(60, 0, -2);
+	glVertex3f(60, 80, -2);
+	glVertex3f(60, 80, -2);
+	glVertex3f(20, 80, -2);
+	glVertex3f(60, 0, -2);
+	glVertex3f(20, 0, -2);
 	glEnd();
 
 	glLineWidth(1);
 	//columns
 	glBegin(GL_LINES);
 	for (int i = 0; i < 10; i++) {
-		glVertex3f(0+i, 20, -2.4);
-		glVertex3f(0+i, 0, -2.4);
+		glVertex3f(20+i*4, 80, -2);
+		glVertex3f(20+i*4, 0, -2);
 	}
 	glEnd();
 	//rows
 	glBegin(GL_LINES);
 	for (int i = 0; i < 21; i++) {
-		glVertex3f(0, 0+i, -2.4);
-		glVertex3f(10, 0+i, -2.4);
+		glVertex3f(20, 0+i*4, -2);
+		glVertex3f(60, 0+i*4, -2);
 	}
 	glEnd();
 
@@ -135,14 +173,20 @@ void drawFrame() {
 void drawBoard(board gameBoard) {
 	
 	for (int x = 0; x < 10; x++) {
-		for (int y = 0; y < 24; y++) {
+		for (int y = 0; y < 22; y++) {
 			if (gameBoard.grid[x][y]->occupied) {
-				glColor3f(gameBoard.grid[x][y]->color[0], gameBoard.grid[x][y]->color[1], gameBoard.grid[x][y]->color[2]);
+				//glColor3f(gameBoard.grid[x][y]->color[0], gameBoard.grid[x][y]->color[1], gameBoard.grid[x][y]->color[2]);
+				//glMaterialfv(GL_FRONT, GL_DIFFUSE, gameBoard.grid[x][y]->color);
+				glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, gameBoard.grid[x][y]->color);
+				glMaterialfv(GL_FRONT, GL_SPECULAR, gameBoard.grid[x][y]->color);
+				//glMaterialfv(GL_FRONT, GL_DIFFUSE, gameBoard.grid[x][y]->color);
+
 				//glColor3i(150,0,200);
 				//glColor3f(gameBoard.grid[x][y].color);
 				glPushMatrix();
-				glTranslatef(x+.5, y+.5, -3);
-				glutSolidCube(.9);
+				glScalef(1,1,.3);
+				glTranslatef(x*4+22, y*4+2, -4.8);
+				glutSolidCube(3.8);
 				glPopMatrix();
 			}
 		}
@@ -150,14 +194,70 @@ void drawBoard(board gameBoard) {
 }
 void drawScene()
 {
+
+
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glLoadIdentity();
+	// Light quadratic attenuation factor.
+	glLightf(GL_LIGHT0, GL_QUADRATIC_ATTENUATION, t);
+
 	glColor3f(0.0, 0.0, 0.0);
+
+	// Light position vectors.	
+	float lightPos0[] = { (50.0f),
+		(50.0f ), (2.5f), 1.0f };
+
+	// Material property vectors.
+	float matAmb[] = { 1, 1, 1, 1.0 };
+	float matDif[] = { 1, 1, 1, 1.0 };
+	float matSpec[] = { 1, 1, 1, 1.0 };
+	float matShine[] = { h };
+	float matAmbAndDif2[] = { 0.0, 0.9, 0.0, 1.0 };
+
 
 	//set PROJECTION MATRIX
 	//setProjection();
+	glDisable(GL_LIGHTING);
+
+	glPushMatrix();
+	glTranslatef(70, 90, -2);
+
+	
+	glScalef(0.05, .05, .05);
+
+	// convert a number to a string for printing
+	char numString[7]= "score:";
+	writeStrokeString(GLUT_STROKE_ROMAN, numString);
+	
+	glPopMatrix();
+	glPushMatrix();
+	glTranslatef(70, 80, -2);
+	glScalef(0.05, .05, .05);
+
+	sprintf(numString, "%d", gameBoard->score);
+	writeStrokeString(GLUT_STROKE_ROMAN, numString);
+
+
+	glPopMatrix();
+
 	drawFrame();
+
+	glEnable(GL_LIGHTING);
+	// Material properties of squares.
+	glMaterialfv(GL_FRONT, GL_AMBIENT, matAmb);
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, matDif);
+	glMaterialfv(GL_FRONT, GL_SPECULAR, matSpec);
+	glMaterialfv(GL_FRONT, GL_SHININESS, matShine);
+
+
 	drawBoard(*gameBoard);
 
+	glPushMatrix();
+	glLightfv(GL_LIGHT0, GL_POSITION, lightPos0);
+	glTranslatef(lightPos0[0], lightPos0[1], lightPos0[2]);
+	glColor3f(1.0, 1.0, 1.0);
+	glutWireSphere(0.05, 8, 8);
+	glPopMatrix();
 	
 	glutSwapBuffers();
 }
@@ -171,6 +271,8 @@ void timerFunction(int val) {
 }
 void keyInput(unsigned char key, int x, int y)
 {
+	bool done = false;
+
 	//does nothing yet
 	switch (key)
 	{
@@ -185,22 +287,20 @@ void keyInput(unsigned char key, int x, int y)
 		cout << "Move Right key hit" << endl;
 		 gameBoard->stepRight();
 		break;
-	case 'z':  //Make bird soar
-		cout << "Move Left key hit" << endl;
-		gameBoard->leftRotate();
-		//cout << gameBoard->curr->orint;
-
-		break;
 	case 'x':  //Make bird soar
 		cout << "Move Right key hit" << endl;
-		cout << gameBoard->canRotate(true);
+		cout << gameBoard->canRotate();
 		//cout << gameBoard->curr->orint;
 		break;
 	case 'w':  //Make bird soar
 		cout << "finish drop key hit" << endl;
-		bool done = false;
-		while(!done)
-			done= gameBoard->settle();
+		while (!done) {
+			done = gameBoard->settle();
+		}
+		break;
+	case 's':  //Make bird soar
+		cout << "finish drop key hit" << endl;
+		gameBoard->settle();
 		break;
 	} //end switch
 	glutPostRedisplay();

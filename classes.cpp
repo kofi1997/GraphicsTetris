@@ -30,7 +30,12 @@ public:
 		color[0] = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
 		color[1] = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
 		color[2] = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+		while (color[0] >= .9&&color[1] >= .9&&color[2] >= .9) {
+			color[0] = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+			color[1] = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+			color[2] = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
 
+		}
 	}
 };
 
@@ -415,7 +420,7 @@ class block {
 public:
 	bool occupied;
 	bool fixed;
-	float color[3] = { 0,0,0 };
+	float color[4] = { 0,0,0,1 };
 };
 
 class board {
@@ -423,6 +428,9 @@ public:
 	//std::vector<std::vector<block>> grid;
 	block* grid[10][24];
 	piece *curr;
+	piece *next;
+	int score = 0;
+
 	void getPiece() {
 		int p = rand() % 7;
 		switch (p) {
@@ -529,8 +537,7 @@ public:
 		if (curr->anchory == 0 || grid[curr->anchorx][curr->anchory - 1]->occupied == true ) {
 			std::cout << "cant move down anymore" << std::endl;
 			setPiece();
-			int x=checkComplete();
-			//std::cout << x << std::endl;
+			 score+=checkComplete();
 			getPiece();
 			return true;
 
@@ -540,8 +547,7 @@ public:
 			if (curr->anchory + it2->y <= 0 || grid[curr->anchorx + it2->x][curr->anchory + it2->y - 1]->occupied == true) {
 				std::cout << "cant move down anymore v2" << std::endl;
 				setPiece();
-				int x=checkComplete();
-				//std::cout << x << std::endl;
+				score+=checkComplete();
 				getPiece();
 				return true;
 			}
@@ -578,75 +584,105 @@ public:
 		return curr->anchorx;
 	}
 
-	bool canRotate(bool right) {
+	bool canRotate() {
 		int nextorint;
 		layout nextlay;
 		unsetPiece();
 		bool shift = false;
+		bool shift2 = false;
+		if (curr->orint < curr->numOrints - 1)
+			nextorint = curr->orint + 1;
+		else
+			nextorint = 0;
+		nextlay = curr->orintLayouts[nextorint];
+		std::vector<coords>::iterator it1 = nextlay.pos.begin();
+		for (int i = 0; i < 3; i++) {
+			if (curr->anchorx + nextlay.pos[i].x > 9) {
+				shift = true;
+				break;
+			}
+			else if (curr->anchorx + nextlay.pos[i].x < 0) {
+				shift2 = true;
+				break;
+			}
+			if (grid[curr->anchorx + nextlay.pos[i].x][curr->anchory + it1->y]->occupied) {
+				setPiece();
+				return shift;
 
-		if (right) {
-			if(curr->orint < curr->numOrints - 1)
-				nextorint= curr->orint+1;
-			else
-				nextorint = 0;
-			nextlay = curr->orintLayouts[nextorint];
-			std::vector<coords>::iterator it1 = nextlay.pos.begin();
+			}
+		}
+		if (shift) {
+			if (grid[curr->anchorx - 1][curr->anchory + it1->y]->occupied) {
+				setPiece();
+				return shift;
+			}
+
 			for (int i = 0; i < 3; i++) {
-				if (curr->anchorx + nextlay.pos[i].x > 9) {
+				if (curr->anchorx + nextlay.pos[i].x - 1 > 9) {
 					shift = true;
 					break;
 				}
-				if (grid[curr->anchorx + nextlay.pos[i].x][curr->anchory + it1->y]->occupied) {
+				if (grid[curr->anchorx + nextlay.pos[i].x - 1][curr->anchory + it1->y]->occupied) {
 					setPiece();
 					return shift;
 
 				}
 			}
-			if (shift) {
-				if (grid[curr->anchorx - 1][curr->anchory + it1->y]->occupied) {
+			curr->anchorx--;
+		}
+		else if (shift2) {
+			int x = 0;
+			for (int i = 0; i < 3; i++) {
+				if (curr->anchorx + nextlay.pos[i].x < x) {
+					x = curr->anchorx + nextlay.pos[i].x;
+					
+				}
+			}
+			if (x == -1) {
+				if (grid[curr->anchorx + 1][curr->anchory + it1->y]->occupied) {
 					setPiece();
 					return shift;
 				}
 
 				for (int i = 0; i < 3; i++) {
-					if (curr->anchorx + nextlay.pos[i].x - 1 > 9) {
+					if (curr->anchorx + nextlay.pos[i].x + 1 < 0) {
 						shift = true;
 						break;
 					}
-					if (grid[curr->anchorx + nextlay.pos[i].x - 1][curr->anchory + it1->y]->occupied) {
+					if (grid[curr->anchorx + nextlay.pos[i].x + 1][curr->anchory + it1->y]->occupied) {
 						setPiece();
 						return shift;
 
 					}
 				}
-				curr->anchorx--;
+				curr->anchorx++;
 			}
-			rightRotate();
+			else {
+				if (grid[curr->anchorx + 2][curr->anchory + it1->y]->occupied) {
+					setPiece();
+					return shift;
+				}
 
-		}
-		else {
-			if (curr->orint > 0) {
-				nextorint = curr->orint-1;
+				for (int i = 0; i < 3; i++) {
+					if (curr->anchorx + nextlay.pos[i].x + 2 < 0) {
+						shift = true;
+						break;
+					}
+					if (grid[curr->anchorx + nextlay.pos[i].x + 2][curr->anchory + it1->y]->occupied) {
+						setPiece();
+						return shift;
+
+					}
+				}
+				curr->anchorx += 2;
 			}
-			else
-				nextorint = curr->numOrints - 1;
-			nextlay = curr->orintLayouts[nextorint];
-
 		}
+		rightRotate();
+
+
 		return shift;
 	}
-	void leftRotate() {
-		unsetPiece();
-
-		if (curr->orint > 0) {
-			curr->orint--;
-		}
-		else {
-			curr->orint = curr->numOrints - 1;
-		}
-		setPiece();
-
-	}
+	
 	void rightRotate() {
 
 		if (curr->orint < curr->numOrints - 1) {
@@ -662,7 +698,8 @@ public:
 
 	}
 	int checkComplete() {
-		int comp=0;
+		int points=0;
+		int numcomp = 0;
 		for (int r = 23; r >= 0; r--) {
 			bool fin = true;
 			for (int c = 0; c < 10; c++) {
@@ -671,7 +708,8 @@ public:
 				}
 			}
 			if (fin) {
-				comp = 4;
+				numcomp++;
+				points += 100*numcomp;
 				for (int a = r + 1; a < 24; a++) {
 				
 					for (int c = 0; c < 10; c++) {
@@ -685,7 +723,7 @@ public:
 				}
 			}
 		}
-		return comp;
+		return points;
 	}
 
 };
