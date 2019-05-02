@@ -1,8 +1,69 @@
+/******************************************
+*
+* Official Name:  Kofi Dinizulu
+*
+* Nickname:  Kofi
+*
+* E-mail:  kdinizul@syr.edu
+*
+* Assignment:  Final Project
+*
+* Environment/Compiler:  Visual Studio 2015
+*
+* Date:  April 12, 2019
+*
+* References:  none
+*
+* Interactions:   Press the escape key to quit.
+*                 Press S to Soar
+Press 0 for ortho view
+Press 1 for frust view
+press 2 for perspecitve view
+press w to finish dropping
+press left arrow or a to move left
+press right arrow or d to move left
+
+press up arrow or 'w' to finish dropping
+press down arrow or 's' to  drop one square
+
+press 'x' to rotate the current piece
+
+press 'r' to reset game
+Press right click to bring up menu
+*
+*******************************************/
+
+
+
 #include<vector>
 #include<random>
 #include <time.h> 
 #include <iostream>
+#include <fstream>
+#include <cstdlib>
+#include <iostream>
 
+
+#ifdef __APPLE__
+#  include <GLUT/glut.h>
+#else
+#  include <GL/glut.h>
+#endif
+//bitmap files
+
+//#include "blue.bmp"
+//#include "cyan.bmp"
+//#include "green.bmp"
+//#include "magenta.bmp"
+//#include "orange.bmp"
+//#include "red.bmp"
+//#include "yellow.bmp"
+//#include "onlinepngtools.bmp"
+static unsigned int texture[1]; // Array of texture indices.
+static GLUquadricObj *qobj; // Create a pointer to a quadric object.
+
+
+using namespace std;
 
 class coords {
 public:
@@ -10,13 +71,13 @@ public:
 	int y;
 };
 
+
 class layout {
 public:
 	std::vector<coords> pos;
 };
 
 class piece {
-	//vector<vector<bool>> dems;
 public:
 	float color[3];
 	int anchorx=2;
@@ -150,6 +211,7 @@ public:
 
 	zPiece() : piece(){
 		numOrints = 2;
+
 		setOrs();
 	}
 };
@@ -193,6 +255,7 @@ public:
 
 	iPiece(): piece() {
 		numOrints = 2;
+
 		setOrs();
 	}
 };
@@ -266,6 +329,7 @@ public:
 
 	lPiece(): piece() {
 		numOrints = 4;
+
 		setOrs();
 	}
 };
@@ -425,7 +489,6 @@ public:
 
 class board {
 public:
-	//std::vector<std::vector<block>> grid;
 	block* grid[10][24];
 	piece *curr;
 	piece *next;
@@ -460,6 +523,7 @@ public:
 	}
 	board() {
 		srand(time(NULL));
+	
 		for (int c = 0; c < 10; c++) {
 			for (int r = 0; r < 24; r++) {
 				grid[c][r] = new block();
